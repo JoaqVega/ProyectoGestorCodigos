@@ -1,0 +1,123 @@
+-- -----------------------------------------------------
+-- 1. Crear Base de Datos
+-- -----------------------------------------------------
+DROP DATABASE IF EXISTS dbGestionCodigos;
+CREATE DATABASE dbGestionCodigos;
+USE dbGestionCodigos;
+
+-- -----------------------------------------------------
+-- 2. Tabla: Usuarios (Acceso al Sistema)
+-- -----------------------------------------------------
+CREATE TABLE tb_usuarios (
+    id_usuario      INT AUTO_INCREMENT PRIMARY KEY,
+    nombres         VARCHAR(100) NOT NULL,
+    apellidos       VARCHAR(100) NOT NULL,
+    correo          VARCHAR(100) NOT NULL UNIQUE, -- Se usará como username en el Login
+    password        VARCHAR(255) NOT NULL,        -- Encriptada con BCrypt
+    id_tipo_rol     INT DEFAULT 2,                -- 1: Admin, 2: Operador/User
+    estado          INT DEFAULT 1                 -- 1: Activo, 0: Inactivo
+);
+
+-- -----------------------------------------------------
+-- 3. Tabla: Plataformas (Catálogo de Servicios)
+-- -----------------------------------------------------
+CREATE TABLE tb_plataformas (
+    id_plataforma   INT AUTO_INCREMENT PRIMARY KEY,
+    nombre          VARCHAR(50) NOT NULL,  -- Ej: Facebook, BCP, AWS
+    descripcion     VARCHAR(200),
+    estado          INT DEFAULT 1
+);
+
+-- -----------------------------------------------------
+-- 4. Tabla: Dominios Permitidos (Seguridad)
+-- -----------------------------------------------------
+CREATE TABLE tb_dominios (
+    id_dominio      INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_dominio  VARCHAR(100) NOT NULL, -- Ej: ciberfarma.com
+    estado          INT DEFAULT 1
+);
+
+-- -----------------------------------------------------
+-- 5. Tabla: Correos Autorizados
+-- -----------------------------------------------------
+CREATE TABLE tb_correos (
+    id_correo       INT AUTO_INCREMENT PRIMARY KEY,
+    direccion       VARCHAR(100) NOT NULL UNIQUE, -- Ej: marketing@ciberfarma.com
+    responsable     VARCHAR(100),                 -- Quién maneja este correo
+    id_dominio      INT NOT NULL,
+    estado          INT DEFAULT 1,
+    FOREIGN KEY (id_dominio) REFERENCES tb_dominios(id_dominio)
+);
+
+-- -----------------------------------------------------
+-- 6. Tabla: Solicitudes de Código (La tabla principal)
+-- -----------------------------------------------------
+CREATE TABLE tb_solicitudes (
+    id_solicitud        INT AUTO_INCREMENT PRIMARY KEY,
+    codigo_verificacion VARCHAR(20) NOT NULL,
+    fecha_registro      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_vencimiento   DATETIME,
+    estado_solicitud    VARCHAR(20) DEFAULT 'PENDIENTE', -- PENDIENTE, USADO, VENCIDO
+    
+    -- Relaciones
+    id_usuario          INT NOT NULL, -- Quién registró el código
+    id_plataforma       INT NOT NULL, -- De qué servicio es
+    id_correo           INT NOT NULL, -- A qué correo llegó
+    
+    FOREIGN KEY (id_usuario) REFERENCES tb_usuarios(id_usuario),
+    FOREIGN KEY (id_plataforma) REFERENCES tb_plataformas(id_plataforma),
+    FOREIGN KEY (id_correo) REFERENCES tb_correos(id_correo)
+);
+
+INSERT INTO tb_plataformas (nombre, descripcion) VALUES 
+('Facebook Business', 'Acceso a publicidad'),
+('Banca BCP', 'Cuentas corporativas'),
+('AWS Console', 'Servidores en la nube'),
+('Sunat', 'Facturación electrónica');
+
+INSERT INTO tb_dominios (nombre_dominio) VALUES ('ciberfarma.com');
+
+-- Agregar correo
+INSERT INTO tb_correos (direccion, responsable, id_dominio) VALUES 
+('marketing@ciberfarma.com', 'Carlos Marketing', 1);
+
+-- Agregar solicitudes
+INSERT INTO tb_solicitudes (codigo_verificacion, fecha_vencimiento, id_usuario, id_plataforma, id_correo) VALUES 
+('G-963258', '2025-12-31 23:59:00', 1, 2, 1),
+('G-741852', '2025-12-31 23:59:00', 1, 3, 1);
+/*
+-- -----------------------------------------------------
+-- 7. DATOS DE PRUEBA (SEED DATA)
+-- -----------------------------------------------------
+
+-- A) Usuarios
+-- Nota: La contraseña para ambos es "123456" (encriptada con BCrypt)
+INSERT INTO tb_usuarios (nombres, apellidos, correo, password, id_tipo_rol) VALUES 
+('Juan', 'Admin', 'admin@sistema.com', '$2a$10$D8S/i.b/w.U6h5.t.b.O.O.r.s.t.u.v.w.x.y.z.1.2.3.4.5', 1),
+('Ana', 'Operadora', 'ana@sistema.com', '$2a$10$D8S/i.b/w.U6h5.t.b.O.O.r.s.t.u.v.w.x.y.z.1.2.3.4.5', 2);
+
+-- B) Plataformas
+INSERT INTO tb_plataformas (nombre, descripcion) VALUES 
+('Facebook Business', 'Acceso a publicidad'),
+('Banca BCP', 'Cuentas corporativas'),
+('AWS Console', 'Servidores en la nube'),
+('Sunat', 'Facturación electrónica');
+
+-- C) Dominios
+INSERT INTO tb_dominios (nombre_dominio) VALUES 
+('ciberfarma.com'),
+('gmail.com');
+
+-- D) Correos Autorizados
+INSERT INTO tb_correos (direccion, responsable, id_dominio) VALUES 
+('marketing@ciberfarma.com', 'Carlos Marketing', 1),
+('finanzas@ciberfarma.com', 'Maria Contadora', 1),
+('soporte.ti@gmail.com', 'Equipo Externo', 2);
+
+-- E) Solicitudes de Ejemplo
+INSERT INTO tb_solicitudes (codigo_verificacion, fecha_vencimiento, id_usuario, id_plataforma, id_correo) VALUES 
+('G-852147', '2025-12-31 23:59:00', 1, 1, 1), -- Facebook -> Marketing
+('995511',   '2025-12-31 23:59:00', 2, 2, 2); -- BCP -> Finanzas
+
+-- Verificar datos */
+SELECT * FROM tb_solicitudes;
